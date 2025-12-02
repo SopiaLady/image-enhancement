@@ -1,0 +1,3278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAN图像增强系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        .action-btn {
+            border-radius: 12px !important;
+            padding: 12px 30px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s !important;
+            font-size: 1.1rem !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            border: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 180px !important;
+        }
+        .btn-primary.action-btn {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+        .btn-primary.action-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(38, 117, 252, 0.4);
+        }
+        .btn-danger.action-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #f5365c 100%);
+        }
+        .btn-danger.action-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.4);
+        }
+        .btn-outline-primary.action-btn {
+            background: white;
+            color: #2575fc;
+            border: 2px solid #2575fc !important;
+        }
+        .btn-outline-primary.action-btn:hover:not(:disabled) {
+            background: #2575fc;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #2575fc;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            background-color: rgba(37, 117, 252, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 200px;
+        }
+        .upload-area:hover {
+            background-color: rgba(37, 117, 252, 0.1);
+        }
+        .upload-area i {
+            font-size: 3rem;
+            color: #2575fc;
+            margin-bottom: 15px;
+        }
+        .image-preview {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: #f0f0f0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .history-item {
+            border-left: 4px solid #2575fc;
+            padding-left: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 12px;
+            position: relative;
+        }
+        .history-item:hover {
+            background-color: rgba(37, 117, 252, 0.05);
+            transform: translateX(5px);
+        }
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+        }
+        .feature-icon i {
+            color: white;
+            font-size: 24px;
+        }
+        .mode-card {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-card.active {
+            border: 2px solid #2575fc;
+            background-color: rgba(37, 117, 252, 0.05);
+        }
+        .result-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .comparison-slider {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            overflow: hidden;
+            border-radius: 10px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .before-image, .after-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center center;
+            cursor: grab;
+            transition: transform 0.1s ease;
+        }
+        .before-image.dragging, .after-image.dragging {
+            cursor: grabbing;
+        }
+
+        .enhance-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .grid-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1/1;
+            background-color: #f5f7fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .grid-item:hover {
+            transform: translateY(-5px);
+        }
+        .grid-item img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .grid-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .batch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .image-counter {
+            background-color: #6a11cb;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        .history-preview {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .history-img-container {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        .history-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .history-img-container .badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 0.7rem;
+        }
+        .history-detail-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .history-detail-view.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .history-detail-container {
+            background-color: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .history-detail-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .history-detail-info {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .history-detail-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .close-detail {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #6c757d;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+            margin-left: 15px;
+        }
+        .close-detail:hover {
+            background-color: #f8f9fa;
+            color: #dc3545;
+            transform: rotate(90deg);
+        }
+        .history-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 10px;
+        }
+        .history-detail-item {
+            text-align: center;
+        }
+        .history-detail-item h6 {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .history-detail-preview {
+            border-radius: 10px;
+            overflow: hidden;
+            height: 200px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .history-detail-preview:hover {
+            transform: scale(1.03);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .history-detail-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        .delete-btn i {
+            color: #dc3545;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            top: 6px;
+            width: 100%;
+            height: 100%;
+        }
+        .delete-btn:hover {
+            transform: scale(1.1);
+            background-color: #dc3545;
+        }
+        .delete-btn:hover i {
+            color: white;
+        }
+        .comparison-thumbnails {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        .comparison-thumb {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .comparison-thumb.active {
+            border-color: #2575fc;
+            box-shadow: 0 0 10px rgba(37, 117, 252, 0.5);
+        }
+        .comparison-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .comparison-thumb .badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+        }
+        .image-selector {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+        .image-selector-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #6a11cb;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        .image-selector-btn:hover {
+            background-color: #2575fc;
+            transform: scale(1.1);
+        }
+        .image-selector-btn.disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+        .empty-history {
+            text-align: center;
+            padding: 40px 0;
+            color: #6c757d;
+        }
+        .empty-history i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .history-detail-footer {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+        .zoom-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1060;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .zoom-view.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .zoom-container {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-image {
+            max-width: 100%;
+            max-height: 90vh;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        .zoom-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .zoom-close:hover {
+            background: rgba(255,255,255,0.2);
+            transform: rotate(90deg);
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 50px;
+        }
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        .zoom-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        .zoom-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .comparison-zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 30px;
+            z-index: 25;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .comparison-slider:hover .comparison-zoom-controls {
+            opacity: 1;
+        }
+        .comparison-zoom-controls .zoom-btn {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+        }
+        .comparison-zoom-level {
+            min-width: 70px;
+            text-align: center;
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 2px 8px;
+            border-radius: 15px;
+        }
+        .comparison-zoom-level:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .zoom-input-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 12px 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid #2575fc;
+            transition: all 0.3s;
+        }
+        .zoom-input-container input {
+            width: 80px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #2575fc;
+            background: #f8f9fa;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .zoom-input-container input:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 8px rgba(106, 17, 203, 0.3);
+        }
+        .zoom-input-container button {
+            margin-left: 8px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: none;
+            background: #2575fc;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+        .zoom-input-container button:hover {
+            background: #1a65e0;
+        }
+
+        .drag-hint {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            z-index: 20;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .drag-toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 25;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        .drag-toggle-btn:hover {
+            background: rgba(0,0,0,0.9);
+        }
+        .drag-toggle-btn.active {
+            background: #2575fc;
+        }
+
+        .drag-toggle-btn i {
+            font-size: 0.9rem;
+        }
+
+        .history-delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 5;
+        }
+        .history-delete-btn:hover {
+            background-color: rgba(220, 53, 69, 0.3);
+        }
+        .history-delete-btn i {
+            color: #dc3545;
+            font-size: 12px;
+        }
+
+        .processing-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            z-index: 100;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .process-btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .button-transition {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .fade-out {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+
+        .fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .ai-process-animation {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-process-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shine 1.5s infinite;
+        }
+
+        @keyframes shine {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            transform: none !important;
+            box-shadow: none !important;
+            cursor: not-allowed;
+        }
+
+        /* 终止按钮的禁用状态特定样式 */
+        .btn-danger:disabled {
+            background: linear-gradient(135deg, #dc3545 0%, #f5365c 100%);
+        }
+
+        /* 调整按钮动画效果 */
+        .button-transition {
+            transition: opacity 0.3s, transform 0.3s, background-color 0.3s;
+        }
+
+        /* 禁用状态类 */
+        .disabled-state {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* 按钮状态指示器 */
+        .btn-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+            background-color: #28a745;
+        }
+        .btn-indicator.processing {
+            background-color: #ffc107;
+            animation: pulse 1s infinite;
+        }
+        .btn-indicator.disabled {
+            background-color: #6c757d;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* 图片类型选择样式 */
+        .image-type-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: rgba(37, 117, 252, 0.05);
+            display: none;
+        }
+
+        .image-type-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+
+        .image-type-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 12px 15px;
+            background: white;
+            border: 2px solid #2575fc;
+            border-radius: 10px;
+            color: #2575fc;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            max-width: 200px;
+        }
+
+        .type-btn:hover {
+            background-color: rgba(37, 117, 252, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .type-btn.active {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(37, 117, 252, 0.3);
+        }
+
+        .type-btn i {
+            margin-right: 8px;
+        }
+
+        .type-description {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(37, 117, 252, 0.05);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: block;
+        }
+
+        #manga-description {
+            display: none;
+        }
+
+        /* 超分辨率倍数选择样式 */
+        .scale-selection-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: rgba(37, 117, 252, 0.05);
+            display: none;
+        }
+
+        .scale-selection-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+
+        .scale-selection-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scale-btn {
+            flex: 1;
+            padding: 12px 15px;
+            background: white;
+            border: 2px solid #2575fc;
+            border-radius: 10px;
+            color: #2575fc;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            max-width: 120px;
+        }
+
+        .scale-btn:hover {
+            background-color: rgba(37, 117, 252, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .scale-btn.active {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(37, 117, 252, 0.3);
+        }
+
+        .scale-btn i {
+            margin-right: 8px;
+        }
+
+        .scale-indicator {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 15px;
+            background-color: #6a11cb;
+            color: white;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #2575fc;
+            animation: spin 1s linear infinite;
+            z-index: 5;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* 提示信息样式 */
+        .srgan-info {
+            background-color: #e8f4ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2575fc;
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+
+        .srgan-info:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 5px;
+            background: linear-gradient(to bottom, #6a11cb, #2575fc);
+        }
+
+        .srgan-info i {
+            color: #2575fc;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        /* 超分辨率模式提示 */
+        .mode-hint {
+            background-color: #fff9e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #ffc107;
+            display: none;
+        }
+
+        /* 历史记录中的类型和倍数样式 */
+        .type-scale-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 10px 2px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            background-color: rgba(0, 229, 255, 0.8);
+            margin-left: 6px;
+            font-weight: 500;
+            color: #2c7dbe;
+            transition: all 0.3s;
+        }
+        .type-scale-badge:hover {
+            background-color: rgba(0, 229, 255, 0.5);
+        }
+
+        /* 历史记录详情中的类型和倍数样式 */
+        .history-detail-type-scale {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .comparison-slider {
+                height: 350px;
+            }
+
+            .history-detail-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .scale-selection-buttons,
+            .image-type-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .scale-btn,
+            .type-btn {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .history-detail-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .history-detail-info {
+                margin-top: 10px;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .image-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .history-detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-slider {
+                height: 300px;
+            }
+
+            .type-scale-badge {
+                font-size: 0.75em;
+                padding: 2px 6px;
+            }
+        }
+        /* URL显示区域 */
+        .url-display {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            word-break: break-all;
+            display: none;
+        }
+
+        /* 存储管理面板样式 */
+        .storage-panel {
+            background-color: white;
+            border-radius: 15px;
+            padding: 0;
+            margin-top: 20px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .storage-panel:hover {
+            transform: translateY(-5px);
+        }
+        .storage-panel .card-header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        .storage-panel .card-body {
+            padding: 20px;
+        }
+        .storage-panel .progress-bar {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+
+        .alert-temporary {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1100;
+            min-width: 300px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+
+        .alert-temporary.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+<!-- 头部 -->
+<div class="header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1><i class="fas fa-magic me-3"></i>GAN图像增强系统</h1>
+                <p class="lead">使用先进的生成对抗网络技术提升您的图像质量</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=400" alt="AI Icon" class="img-fluid rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- 主内容区 -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="enhance-title">图像增强</span>
+                    <div class="badge bg-light text-primary">AI驱动</div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-cloud-upload-alt me-2"></i>上传图像</h5>
+                            <div id="upload-area" class="upload-area">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h5>拖放图像或点击上传</h5>
+                                <p class="text-muted">支持 JPG, PNG, BMP 格式 (单张图片，最大10MB)</p>
+                                <input type="file" id="file-input" class="d-none" accept="image/*">
+                                <button class="btn btn-outline-primary mt-2" id="browse-btn">
+                                    <i class="fas fa-folder-open me-2"></i>选择文件
+                                </button>
+                                <div id="image-grid" class="image-grid mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-sliders-h me-2"></i>选择增强模式</h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card mode-card active" data-mode="super">
+                                        <div class="card-body text-center">
+                                            <div class="feature-icon">
+                                                <i class="fas fa-search-plus"></i>
+                                            </div>
+                                            <h5>超分辨率</h5>
+                                            <p class="text-muted small">提升图像分辨率，恢复细节</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card mode-card" data-mode="denoise">
+                                        <div class="card-body text-center">
+                                            <div class="feature-icon">
+                                                <i class="fas fa-broom"></i>
+                                            </div>
+                                            <h5>去噪</h5>
+                                            <p class="text-muted small">去除图像噪点，提升清晰度</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card mode-card" data-mode="color_enhance">
+                                        <div class="card-body text-center">
+                                            <div class="feature-icon">
+                                                <i class="fas fa-palette"></i>
+                                            </div>
+                                            <h5>色彩增强</h5>
+                                            <p class="text-muted small">优化色彩平衡，增强视觉效果</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 提示信息 -->
+                            <div class="srgan-info" id="srgan-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>提示：</strong> 普通图片和漫画图片使用不同的AI模型处理，效果有明显差异。漫画图片仅支持4倍增强。
+                            </div>
+
+                            <!-- 图片类型选择区域 -->
+                            <div class="image-type-container" id="image-type-container">
+                                <div class="image-type-title">
+                                    <i class="fas fa-image me-2"></i>选择图片类型
+                                </div>
+                                <div class="image-type-buttons">
+                                    <div class="type-btn active" data-type="normal">
+                                        <i class="fas fa-image"></i>普通图片
+                                    </div>
+                                    <div class="type-btn" data-type="manga">
+                                        <i class="fas fa-book"></i>漫画图片
+                                    </div>
+                                </div>
+                                <div class="type-description" id="normal-description">
+                                    <p><strong>普通图片</strong>：适用于照片、风景、人物等真实场景图片，可选择2倍或4倍超分辨率增强。</p>
+                                </div>
+                                <div class="type-description" id="manga-description">
+                                    <p><strong>漫画图片</strong>：适用于漫画、插画等艺术类图片，使用专门的GAN模型处理线条和色块，仅支持4倍增强。</p>
+                                </div>
+                            </div>
+
+                            <!-- 超分辨率倍数选择区域 -->
+                            <div class="scale-selection-container" id="scale-selection-container">
+                                <div class="scale-selection-title">
+                                    <i class="fas fa-expand-alt me-2"></i>选择超分辨率倍数
+                                </div>
+                                <div class="scale-selection-buttons">
+                                    <div class="scale-btn active" data-scale="2">
+                                        <i class="fas fa-arrows-alt-h"></i>2倍
+                                    </div>
+                                    <div class="scale-btn" data-scale="4">
+                                        <i class="fas fa-expand-alt"></i>4倍
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4" id="preview-section" style="display: none;">
+                        <div class="col-md-12">
+                            <div class="batch-header">
+                                <h5><i class="fas fa-image me-2"></i>原始图像</h5>
+                            </div>
+                            <div class="image-grid" id="original-grid"></div>
+                        </div>
+
+                        <div class="col-md-12 mt-4">
+                            <div class="batch-header">
+                                <h5><i class="fas fa-wand-magic-sparkles me-2"></i>增强结果</h5>
+                            </div>
+                            <div class="image-grid" id="result-grid"></div>
+                            <div class="progress mt-3" id="progress-bar" style="display: none;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="processing-status" id="processing-status">
+                                <i class="fas fa-spinner fa-spin me-2"></i>AI正在处理您的图像...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" id="action-section">
+                        <div class="col-md-12 text-center">
+                            <div class="btn-group">
+                                <button class="btn btn-primary btn-lg action-btn" id="process-btn">
+                                    <i class="fas fa-bolt me-2"></i>开始增强
+                                    <span class="btn-indicator"></span>
+                                </button>
+                                <button class="btn btn-danger btn-lg action-btn" id="cancel-process-btn" disabled>
+                                    <i class="fas fa-stop-circle me-2"></i>终止处理
+                                    <span class="btn-indicator"></span>
+                                </button>
+                                <button class="btn btn-outline-primary btn-lg action-btn" id="download-btn" disabled>
+                                    <i class="fas fa-download me-2"></i>下载图片
+                                    <span class="btn-indicator"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-search me-2"></i><span class="enhance-title">细节查看</span></span><!-- 效果对比 -->
+                </div>
+                <div class="card-body">
+                    <div class="result-container">
+                        <div class="comparison-slider" id="comparison-slider">
+                            <div class="drag-toggle-btn" id="drag-toggle-btn">
+                                <i class="fas fa-hand-paper"></i>
+                                <span>启用拖拽</span>
+                            </div>
+                            <div class="drag-hint" id="drag-hint">
+                                <i class="fas fa-arrows-alt me-1"></i> 点击启用拖拽可拖动图像 | Ctrl+滚轮缩放 | 点击放大倍数输入
+                            </div>
+                            <div class="before-image" id="before-image"></div>
+                            <div class="after-image" id="after-image"></div>
+                            <!-- <div class="slider-handle"></div> -->
+                            <div class="loading-spinner" id="image-loading" style="display: none;"></div>
+
+                            <!-- 细节查看区域的缩放控制 -->
+                            <div class="comparison-zoom-controls">
+                                <div class="zoom-btn" id="comparison-zoom-out">
+                                    <i class="fas fa-search-minus"></i>
+                                </div>
+                                <div class="comparison-zoom-level" id="comparison-zoom-level">1.0x</div>
+                                <div class="zoom-btn" id="comparison-zoom-in">
+                                    <i class="fas fa-search-plus"></i>
+                                </div>
+                                <div class="zoom-btn" id="comparison-zoom-reset">
+                                    <i class="fas fa-sync-alt"></i>
+                                </div>
+                            </div>
+
+                            <div class="zoom-input-container" id="zoom-input-container">
+                                <input type="number" id="custom-zoom-input" min="0.5" max="4" step="0.1" value="1.0">
+                                <button id="apply-zoom">应用</button>
+                            </div>
+                        </div>
+
+                        <!-- <div class="image-selector mt-3">
+                            <div class="image-selector-btn" id="prev-img-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="image-selector-btn" id="next-img-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div> -->
+
+                        <div class="comparison-thumbnails" id="comparison-thumbnails">
+                            <!-- 缩略图将在这里动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 侧边栏 -->
+        <div class="col-lg-4">
+            <!-- 历史记录卡片 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-history me-2"></i>最近处理</span>
+                    <button class="btn btn-sm btn-outline-light" id="clear-history">
+                        <i class="fas fa-trash-alt me-1"></i>清空
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 800px; overflow-y: auto;">
+                    <div id="history-list">
+                        <div class="empty-history">
+                            <i class="fas fa-clock"></i>
+                            <p class="text-muted">暂无处理历史</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 存储管理面板 -->
+            <div class="card mb-4 storage-panel">
+                <div class="card-header">
+                    <i class="fas fa-database me-2"></i>存储管理
+                </div>
+                <div class="card-body">
+                    <h6>存储使用情况</h6>
+                    <div class="progress mb-3" style="height: 20px;">
+                        <div id="storage-usage" class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mb-3">
+                        <span id="storage-used">0 MB</span>
+                        <span id="storage-total">0 MB</span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearOldRecords(30)">
+                            <i class="fas fa-trash me-1"></i>清理30天前记录
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="clearOldRecords(7)">
+                            <i class="fas fa-broom me-1"></i>清理7天前记录
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="checkStorageUsage()">
+                            <i class="fas fa-sync-alt me-1"></i>刷新存储状态
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-2"></i>关于此系统
+                </div>
+                <div class="card-body">
+                    <p>本系统使用先进的生成对抗网络(GAN)技术进行图像增强，支持三种增强模式：</p>
+                    <ul>
+                        <li><strong>超分辨率</strong>：使用ESRGAN模型提升图像分辨率</li>
+                        <li><strong>去噪</strong>：使用基于patch判别器的cGAN模型去除图像噪点</li>
+                        <li><strong>色彩增强</strong>：使用基于UNet+PatchGAN的LSGAN模型优化图像色彩</li>
+                    </ul>
+                    <p>系统基于以下技术构建：</p>
+                    <div class="d-flex flex-wrap">
+                        <span class="badge bg-primary me-2 mb-2">PyTorch</span>
+                        <span class="badge bg-primary me-2 mb-2">GAN</span>
+                        <span class="badge bg-primary me-2 mb-2">MoE, Mixture of Experts</span>
+                        <span class="badge bg-primary me-2 mb-2">FastAPI</span>
+                        <span class="badge bg-primary me-2 mb-2">OpenCV2</span>
+                        <span class="badge bg-primary me-2 mb-2">IndexedDB</span>
+
+                    </div>
+                    <div class="mt-3">
+                        <h6>图片类型选择</h6>
+                        <p>在超分辨率模式下，您可以选择普通图片或漫画图片：</p>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center">
+                                <div class="scale-indicator">普通</div>
+                                <span class="ms-2">适用于照片、风景、人物等真实场景图片</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="scale-indicator">漫画</div>
+                                <span class="ms-2">适用于漫画、插画等艺术类图片</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>超分辨率倍数选择</h6>
+                            <p>根据图片类型，倍数选择有所不同：</p>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="scale-indicator">2×</div>
+                                    <span class="ms-2">仅普通图片可用，快速基础增强</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="scale-indicator">4×</div>
+                                    <span class="ms-2">普通图片和漫画图片均可用，高质量增强</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>系统状态
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>CPU使用率</span>
+                            <span>42%</span>
+                        </div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar" role="progressbar" style="width: 42%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>内存使用</span>
+                            <span>1.2GB/4GB</span>
+                        </div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar" role="progressbar" style="width: 30%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>GPU加速</span>
+                            <span class="text-success">已启用</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between">
+                            <span>模型状态</span>
+                            <span class="text-success">已加载</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between">
+                            <span>批量处理能力</span>
+                            <span class="text-success">9张/批次</span>
+                        </div>
+                    </div>
+                </div> -->
+            <!-- </div> -->
+        </div>
+    </div>
+</div>
+
+<!-- 临时提示框 -->
+<div class="alert alert-temporary alert-dismissible fade" id="temp-alert" role="alert">
+    <span id="alert-message"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<!-- 历史记录详情弹窗 -->
+<div class="history-detail-view" id="history-detail-view">
+    <div class="history-detail-container">
+        <div class="history-detail-header">
+            <h3 class="history-detail-title">历史记录详情</h3>
+            <div class="history-detail-info">
+                <span class="badge bg-primary" id="history-detail-mode">超分辨率</span>
+                <div id="history-type-scale">
+                    <!-- 图片类型和倍数信息将在这里动态显示 -->
+                </div>
+                <span class="badge bg-secondary" id="history-detail-date">2025-8-9</span>
+                <span class="close-detail" id="close-detail">&times;</span>
+            </div>
+        </div>
+        <div class="history-detail-content">
+            <div class="history-detail-grid" id="history-detail-grid">
+                <!-- 动态生成内容 -->
+            </div>
+        </div>
+        <div class="history-detail-footer">
+            <button class="btn btn-primary" id="detail-view-btn">
+                <i class="fas fa-search me-2"></i>查看细节对比
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片放大查看 -->
+<div class="zoom-view" id="zoom-view">
+    <div class="zoom-container">
+        <img src="" alt="放大图片" class="zoom-image" id="zoom-image">
+        <div class="zoom-info" id="zoom-info">放大视图 | 100%</div>
+        <div class="zoom-close" id="zoom-close">&times;</div>
+        <div class="zoom-controls">
+            <div class="zoom-btn" id="zoom-in">
+                <i class="fas fa-plus"></i>
+            </div>
+            <div class="zoom-btn" id="zoom-out">
+                <i class="fas fa-minus"></i>
+            </div>
+            <div class="zoom-btn" id="zoom-reset">
+                <i class="fas fa-sync-alt"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>GAN图像增强系统</h5>
+                <p>支持普通图片与漫画图片增强</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p>&copy; 2025 图像增强工作台. 保留所有权利.</p>
+                <p>版本: 1.2.0 | 最后更新: 2025-8-10</p>
+                <p class="small">历史记录已保存在本地存储中</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+    // 全局变量
+    let currentImages = [];  // 当前上传的图片数组
+    let currentMode = 'super';  // 当前选择的处理模式：super/denoise/color_enhance，默认为超分辨率
+    let currentImageType = 'normal';  // 图片类型：normal/manga
+    let processedImages = []; // 处理后的图片数组
+    let historyRecords = []; // 历史记录数组
+    let currentComparisonIndex = 0; // 当前对比查看的图片索引
+    let currentHistoryRecord = null; // 当前查看的历史记录
+    let zoomLevel = 1; // 缩放级别
+    let currentZoom = 3; // 当前缩放值
+    let comparisonZoomLevel = 1.0; // 细节查看区域的缩放级别
+    let isDragging = false; // 是否允许拖拽
+    let dragStartX = 0; // 拖拽起始X坐标
+    let dragStartY = 0; // 拖拽起始Y坐标
+    let translateX = 0; // X轴平移量
+    let translateY = 0; // Y轴平移量
+    let dragModeEnabled = false; // 拖拽模式是否启用
+    let processingInterval = null; // 处理进度定时器
+    let isProcessing = false; // 是否正在处理
+    let isProcessingCancelled = false; // 处理是否已取消
+    let currentScale = 2; // 当前选择的放大倍数
+
+    // API配置
+    const API_BASE_URL = 'http://localhost:8080'; // 后端API基础URL
+    const apiUrl = `${API_BASE_URL}/api/images/process`; // 图像处理API端点
+
+    // DOM元素
+    // 文件上传相关
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const uploadArea = document.getElementById('upload-area');
+    // 预览区域
+    const previewSection = document.getElementById('preview-section');
+    const actionSection = document.getElementById('action-section');
+    // 功能按钮
+    const processBtn = document.getElementById('process-btn');
+    const cancelProcessBtn = document.getElementById('cancel-process-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    // 进度条
+    const progressBar = document.getElementById('progress-bar');
+    const progressBarInner = progressBar.querySelector('.progress-bar');
+    // 历史记录
+    const historyList = document.getElementById('history-list');
+    // 模式选择卡片
+    const modeCards = document.querySelectorAll('.mode-card');
+    // 图片细节查看
+    const beforeImage = document.getElementById('before-image');
+    const afterImage = document.getElementById('after-image');
+    const imageGrid = document.getElementById('image-grid');
+    const originalGrid = document.getElementById('original-grid');
+    const resultGrid = document.getElementById('result-grid');
+    // 历史记录详情
+    const historyDetailView = document.getElementById('history-detail-view');
+    const closeDetail = document.getElementById('close-detail');
+    const historyDetailGrid = document.getElementById('history-detail-grid');
+    const historyDetailMode = document.getElementById('history-detail-mode');
+    const historyDetailDate = document.getElementById('history-detail-date');
+    const clearHistoryBtn = document.getElementById('clear-history');
+    const detailViewBtn = document.getElementById('detail-view-btn');
+    const comparisonThumbnails = document.getElementById('comparison-thumbnails');
+    // 缩放控制，拖拽
+    const zoomView = document.getElementById('zoom-view');
+    const zoomImage = document.getElementById('zoom-image');
+    const zoomClose = document.getElementById('zoom-close');
+    const zoomIn = document.getElementById('zoom-in');
+    const zoomOut = document.getElementById('zoom-out');
+    const zoomReset = document.getElementById('zoom-reset');
+    const zoomInfo = document.getElementById('zoom-info');
+    const dragHint = document.getElementById('drag-hint');
+    const comparisonZoomIn = document.getElementById('comparison-zoom-in');
+    const comparisonZoomOut = document.getElementById('comparison-zoom-out');
+    const comparisonZoomReset = document.getElementById('comparison-zoom-reset');
+    const comparisonZoomLevelDisplay = document.getElementById('comparison-zoom-level');
+    const zoomInputContainer = document.getElementById('zoom-input-container');
+    const customZoomInput = document.getElementById('custom-zoom-input');
+    const applyZoomBtn = document.getElementById('apply-zoom');
+    const dragToggleBtn = document.getElementById('drag-toggle-btn');
+
+    const processingStatus = document.getElementById('processing-status');
+    const imageTypeContainer = document.getElementById('image-type-container');
+    const scaleSelectionContainer = document.getElementById('scale-selection-container');
+    const typeButtons = document.querySelectorAll('.type-btn');
+    const scaleButtons = document.querySelectorAll('.scale-btn');
+    const normalDescription = document.getElementById('normal-description');
+    const mangaDescription = document.getElementById('manga-description');
+    const imageLoading = document.getElementById('image-loading');
+    const srganInfo = document.getElementById('srgan-info');
+    const historyTypeScale = document.getElementById('history-type-scale');
+    // IndexedDB数据库名称和版本
+    const DB_NAME = 'GANImageEnhancement';
+    const DB_VERSION = 2;
+    const STORE_NAME = 'history';
+
+    // 事件监听器
+    // 文件选择事件
+    browseBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+    // 拖拽上传事件
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('drop', handleDrop);
+    // 处理控制按钮事件
+    processBtn.addEventListener('click', startProcessing);
+    cancelProcessBtn.addEventListener('click', cancelProcessing);
+    downloadBtn.addEventListener('click', downloadResults);
+    // 历史记录相关事件
+    closeDetail.addEventListener('click', closeHistoryDetail);
+    clearHistoryBtn.addEventListener('click', clearHistory);
+    detailViewBtn.addEventListener('click', showHistoryDetailComparison);
+    historyDetailView.addEventListener('click', (e) => {
+        if (e.target === historyDetailView) {
+            closeHistoryDetail();
+        }
+    });
+    // 缩放控制事件
+    zoomClose.addEventListener('click', closeZoomView);
+    zoomIn.addEventListener('click', () => adjustZoom(0.1));
+    zoomOut.addEventListener('click', () => adjustZoom(-0.1));
+    zoomReset.addEventListener('click', resetZoom);
+    // 键盘事件
+    document.addEventListener('keydown', handleKeyDown);
+
+    // 拖拽模式切换按钮
+    dragToggleBtn.addEventListener('click', toggleDragMode);
+
+    // 细节查看区域缩放事件
+    comparisonZoomIn.addEventListener('click', () => adjustComparisonZoom(0.1));
+    comparisonZoomOut.addEventListener('click', () => adjustComparisonZoom(-0.1));
+    comparisonZoomReset.addEventListener('click', resetComparisonZoom);
+    comparisonZoomLevelDisplay.addEventListener('click', showZoomInput);
+    applyZoomBtn.addEventListener('click', applyCustomZoom);
+    customZoomInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            applyCustomZoom();
+        }
+    });
+
+    // 图片拖拽事件
+    beforeImage.addEventListener('mousedown', startDrag);
+    afterImage.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', endDrag);
+
+    // 鼠标滚轮缩放事件
+    const comparisonSlider = document.getElementById('comparison-slider');
+    comparisonSlider.addEventListener('wheel', handleMouseWheel, { passive: false });
+
+    // 模式卡片点击事件
+    modeCards.forEach(card => {
+        card.addEventListener('click', () => {
+            // 切换激活状态并更新当前模式
+            modeCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            currentMode = card.dataset.mode;
+
+            // 根据选择的模式显示/隐藏图片类型、倍数选择和提示信息
+            if (currentMode === 'super') {
+                imageTypeContainer.style.display = 'block';
+                scaleSelectionContainer.style.display = 'block';
+                srganInfo.style.display = 'block';
+                updateScaleButtons();
+            } else {
+                imageTypeContainer.style.display = 'none';
+                scaleSelectionContainer.style.display = 'none';
+                srganInfo.style.display = 'none';
+            }
+        });
+    });
+
+    // 图片类型按钮点击事件
+    typeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 切换激活状态并更新当前图片类型
+            typeButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentImageType = button.dataset.type;
+
+            // 更新描述
+            normalDescription.style.display = currentImageType === 'normal' ? 'block' : 'none';
+            mangaDescription.style.display = currentImageType === 'manga' ? 'block' : 'none';
+
+            // 更新倍数选择按钮
+            updateScaleButtons();
+        });
+    });
+
+    // 倍数选择按钮事件
+    scaleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 切换激活状态并更新当前倍数
+            scaleButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentScale = parseInt(button.dataset.scale);
+        });
+    });
+
+    // 更新倍数选择按钮状态
+    function updateScaleButtons() {
+        const scale2Btn = document.querySelector('.scale-btn[data-scale="2"]');
+        const scale4Btn = document.querySelector('.scale-btn[data-scale="4"]');
+
+        if (currentImageType === 'manga') {
+            // 漫画图片只能选择4倍
+            scale2Btn.classList.add('disabled');
+            scale2Btn.style.opacity = '0.5';
+            scale2Btn.style.pointerEvents = 'none';
+
+            // 自动选择4倍
+            scaleButtons.forEach(btn => btn.classList.remove('active'));
+            scale4Btn.classList.add('active');
+            currentScale = 4;
+        } else {
+            // 普通图片可以选择2倍或4倍
+            scale2Btn.classList.remove('disabled');
+            scale2Btn.style.opacity = '1';
+            scale2Btn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // 拖拽模式切换
+    function toggleDragMode() {
+        dragModeEnabled = !dragModeEnabled;
+        if (dragModeEnabled) {
+            // 切换激活状态
+            dragToggleBtn.classList.add('active');
+            dragToggleBtn.innerHTML = '<i class="fas fa-hand-paper"></i><span>禁用拖拽</span>';
+            beforeImage.style.cursor = 'grab';
+            afterImage.style.cursor = 'grab';
+            dragHint.style.opacity = 1;
+        } else {
+            // 移除激活状态
+            dragToggleBtn.classList.remove('active');
+            dragToggleBtn.innerHTML = '<i class="fas fa-hand-paper"></i><span>启用拖拽</span>';
+            beforeImage.style.cursor = '';
+            afterImage.style.cursor = '';
+            dragHint.style.opacity = 0.7;
+        }
+    }
+
+    // 更新按钮状态函数
+    function updateButtonStates() {
+        // 状态指示器
+        const processIndicator = processBtn.querySelector('.btn-indicator');
+        const cancelIndicator = cancelProcessBtn.querySelector('.btn-indicator');
+        const downloadIndicator = downloadBtn.querySelector('.btn-indicator');
+
+        if (isProcessing) {
+            // 处理中状态
+            processBtn.disabled = true;
+            cancelProcessBtn.disabled = false;
+            downloadBtn.disabled = true;
+
+            processIndicator.className = 'btn-indicator processing';
+            cancelIndicator.className = 'btn-indicator processing';
+            downloadIndicator.className = 'btn-indicator disabled';
+        } else {
+            // 非处理中状态
+            processBtn.disabled = currentImages.length === 0;
+            cancelProcessBtn.disabled = true;
+            downloadBtn.disabled = processedImages.length === 0 || isProcessingCancelled;
+
+            processIndicator.className = processBtn.disabled ? 'btn-indicator disabled' : 'btn-indicator';
+            cancelIndicator.className = 'btn-indicator disabled';
+            downloadIndicator.className = downloadBtn.disabled ? 'btn-indicator disabled' : 'btn-indicator';
+        }
+    }
+
+    // 文件处理函数
+    // 处理文件选择（点击上传和拖拽上传）
+    function handleFileSelect(e) {
+        const files = Array.from(e.target.files).slice(0, 9);
+        if (files.length > 0) {
+            handleImageFiles(files);
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.style.backgroundColor = 'rgba(37, 117, 252, 0.1)';
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadArea.style.backgroundColor = 'rgba(37, 117, 252, 0.05)';
+
+        const files = Array.from(e.dataTransfer.files).filter(file =>
+            file.type.match('image.*')).slice(0, 9);
+        if (files.length > 0) {
+            handleImageFiles(files);
+        }
+    }
+
+    // 处理图片文件的上传和预览
+    // files: 图片文件数组
+    function handleImageFiles(files) {
+        // 清空当前图片
+        currentImages = [];
+        imageGrid.innerHTML = '';
+
+        files.forEach((file, index) => {
+            if (!file.type.match('image.*')) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 创建图片数据对象
+                const imgData = {
+                    id: Date.now() + index,
+                    name: file.name,
+                    url: e.target.result,
+                    file: file
+                };
+                currentImages.push(imgData);
+
+                // 添加到上传预览区
+                const gridItem = createGridItem(imgData, index + 1, true);
+                imageGrid.appendChild(gridItem);
+
+                // 更新按钮状态
+                updateButtonStates();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function createGridItem(imgData, index, showDelete = false) {
+        const gridItem = document.createElement('div');
+        gridItem.className = 'grid-item';
+
+        let deleteBtnHtml = '';
+        if (showDelete) {
+            deleteBtnHtml = `
+                            <div class="delete-btn" data-id="${imgData.id}">
+                                <i class="fas fa-times"></i>
+                            </div>
+                        `;
+        }
+
+        gridItem.innerHTML = `
+                        <img src="${imgData.processedUrl || imgData.url}" alt="${imgData.name}">
+                        <div class="overlay">${imgData.name.substring(0, 15)}${imgData.name.length > 15 ? '...' : ''}</div>
+                        <div class="image-counter">${index}</div>
+                        ${deleteBtnHtml}
+                    `;
+
+        // 添加删除事件
+        if (showDelete) {
+            const deleteBtn = gridItem.querySelector('.delete-btn');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteImage(imgData.id);
+            });
+        }
+
+        return gridItem;
+    }
+
+    // 从当前图片数组中删除
+    function deleteImage(imageId) {
+        currentImages = currentImages.filter(img => img.id !== imageId);
+
+        // 重新渲染图片网格
+        imageGrid.innerHTML = '';
+        currentImages.forEach((img, index) => {
+            const gridItem = createGridItem(img, index + 1, true);
+            imageGrid.appendChild(gridItem);
+        });
+
+        // 更新按钮状态
+        updateButtonStates();
+    }
+
+    // 处理图片URL函数
+    function processImageUrl(url) {
+        // 如果url是undefined或null，返回空字符串
+        if (!url) {
+            console.warn('图片URL为空');
+            return '';
+        }
+
+        // 如果已经是完整URL，直接返回
+        if (url.startsWith('http')) {
+            return url;
+        }
+
+        // 如果是相对路径，添加基础URL
+        if (url.startsWith('/')) {
+            return API_BASE_URL + url;
+        }
+
+        // 其他情况直接返回
+        return url;
+    }
+
+    // 添加清空细节查看区域的函数
+    function clearComparisonSlider() {
+        beforeImage.style.backgroundImage = 'none';
+        afterImage.style.backgroundImage = 'none';
+        comparisonThumbnails.innerHTML = '';
+        resetComparisonZoom();
+    }
+
+    // 开始处理图片
+    function startProcessing() {
+        // 清理状态
+        clearProcessingStatus();
+
+        const abortController = new AbortController();
+
+        // 检查是否有上传图片
+        if (currentImages.length === 0) {
+            alert('请先上传图像');
+            return;
+        }
+
+        if (isProcessing) {
+            return;
+        }
+
+        // 清空细节查看区域
+        clearComparisonSlider();
+
+        // 重置按钮状态
+        isProcessingCancelled = false;
+        isProcessing = true;
+        updateButtonStates();
+
+        // 显示预览区域
+        previewSection.style.display = 'block';
+
+        // 清空预览网格
+        originalGrid.innerHTML = '';
+        resultGrid.innerHTML = '';
+
+        // 显示原始图片
+        currentImages.forEach((imgData, index) => {
+            const gridItem = createGridItem(imgData, index + 1, false);
+            originalGrid.appendChild(gridItem);
+
+            // 在结果网格中添加占位符
+            const placeholder = document.createElement('div');
+            placeholder.className = 'grid-item';
+            placeholder.innerHTML = `
+                            <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">处理中...</span>
+                                </div>
+                                <div class="mt-2">处理中...</div>
+                            </div>
+                        `;
+            resultGrid.appendChild(placeholder);
+        });
+
+        // 显示进度条
+        progressBar.style.display = 'block';
+        progressBarInner.style.width = '0%';
+        // processingStatus.style.display = 'block';
+
+        // 模拟进度更新（实际API调用中会替换为真实进度）
+        let progress = 0;
+        processingInterval = setInterval(() => {
+            progress += 2;
+            progressBarInner.style.width = `${Math.min(progress, 90)}%`;
+            if (progress >= 90) clearInterval(processingInterval);
+        }, 310000);
+
+        // 创建FormData对象，用于上传文件
+        const formData = new FormData();
+        currentImages.forEach((imgData) => {
+            formData.append('file', imgData.file);
+        });
+
+        // 根据选择的模式和参数确定后端API参数
+        let apiMode;
+        if (currentMode === 'super') {
+            if (currentImageType === 'manga') {
+                apiMode = 'combo_res_manga_sharpen';
+            } else {
+                apiMode = currentScale === 2 ? 'combo_res_sharpen_2x' : 'combo_res_sharpen_4x';
+            }
+        } else if (currentMode === 'denoise') {
+            apiMode = 'denoise';
+        } else if (currentMode === 'color_enhance') {
+            apiMode = 'color_enhance';
+        }
+        // 添加处理参数
+        formData.append('mode', apiMode);
+        formData.append('imageType', currentImageType);
+        formData.append('scale', currentScale.toString());
+
+        // 调用后端API，发送请求
+        fetch(apiUrl, {
+            method: 'POST',
+            body: formData,
+            signal: abortController.signal
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error('处理失败: ' + data.message);
+                }
+
+                // 停止进度条模拟
+                clearInterval(processingInterval);
+                progressBarInner.style.width = '100%';
+
+                // 处理API返回的结果
+                processedImages = [];
+                resultGrid.innerHTML = '';
+
+                if (data.results && Array.isArray(data.results)) {
+                    data.results.forEach((result, index) => {
+                        if (index >= currentImages.length) {
+                            console.warn(`结果索引 ${index} 超出当前图片数量 ${currentImages.length}`);
+                            return;
+                        }
+
+                        const imgData = currentImages[index];
+                        const originalFile = imgData.file;
+
+                        // 处理返回的图片URL - 确保是完整URL
+                        let processedUrl = result.processedUrl || result.url;
+                        processedUrl = processImageUrl(processedUrl);
+                        // console.log('处理后的URL:', processedUrl);
+
+                        // 确保processedUrl不为空
+                        if (!processedUrl) {
+                            console.error(`处理后的图片URL为空，索引: ${index}`);
+                            processedUrl = imgData.url; // 使用原图作为备用
+                        }
+
+                        const processedImg = {
+                            ...imgData,
+                            id: Date.now() + index,
+                            name: imgData.name,
+                            url: imgData.url,
+                            processedUrl: processedUrl,
+                            file: originalFile,
+                            enhanced: true,
+                            scale: currentScale,
+                            imageType: currentImageType
+                        };
+                        processedImages.push(processedImg);
+
+                        // 添加到结果网格
+                        const gridItem = createGridItem(processedImg, index + 1, false);
+
+                        // 只在超分辨率模式下显示类型和倍数标签
+                        let overlayHtml = '';
+                        if (currentMode === 'super') {
+                            overlayHtml = `
+                            ${currentMode === 'super' ? '超分辨率增强' :
+                                currentMode === 'denoise' ? '去噪增强' : '色彩增强'}
+                            <span class="scale-indicator">${currentScale}×</span>
+                            ${currentImageType === 'manga' ? '<span class="badge bg-info ms-1">漫画</span>' : ''}
+                        `;
+                        } else {
+                            overlayHtml = `
+                            ${currentMode === 'denoise' ? '去噪增强' : '色彩增强'}
+                        `;
+                        }
+
+                        gridItem.querySelector('.overlay').innerHTML = overlayHtml;
+
+                        // 设置背景颜色
+                        gridItem.querySelector('.overlay').style.backgroundColor = currentMode === 'super' ?
+                            (currentImageType === 'manga' ? 'rgba(106, 17, 203, 0.8)' : 'rgba(37, 117, 252, 0.8)') :
+                            (currentMode === 'denoise' ? 'rgba(108, 117, 125, 0.8)' : 'rgba(40, 167, 69, 0.8)');
+
+                        resultGrid.appendChild(gridItem);
+                    });
+
+                    // 更新细节查看区域
+                    updateComparisonThumbnails();
+
+                    // 添加历史记录
+                    addToHistory(processedImages);
+                }
+
+                // 完成处理
+                isProcessing = false;
+                updateButtonStates();
+
+                // 隐藏处理状态
+                processingStatus.style.display = 'none';
+            })
+            .catch(error => {
+                clearProcessingStatus();
+                console.error('处理失败:', error);
+
+                // 停止进度条
+                clearInterval(processingInterval);
+                progressBar.style.display = 'none';
+
+                // 显示错误信息
+                processingStatus.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>处理失败: ${error.message}`;
+                processingStatus.style.display = 'block';
+
+                // 两秒后隐藏错误信息
+                setTimeout(() => {
+                    processingStatus.style.opacity = '1'; // 初始完全可见
+                    let opacity = 1;
+                    const fadeInterval = setInterval(() => {
+                        opacity -= 0.1;
+                        processingStatus.style.opacity = opacity;
+                        if (opacity <= 0) {
+                            clearInterval(fadeInterval);
+                            processingStatus.style.display = 'none';
+                            processingStatus.style.opacity = '1'; // 重置透明度
+                        }
+                    }, 100);
+                }, 2000);
+
+                // 重置结果网格
+                resultGrid.innerHTML = '';
+                currentImages.forEach((imgData, index) => {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'grid-item';
+                    placeholder.innerHTML = `
+                                <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                    <i class="fas fa-exclamation-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                                    <div>处理失败</div>
+                                    <div class="url-display">${apiUrl}</div>
+                                </div>
+                            `;
+                    resultGrid.appendChild(placeholder);
+                });
+
+                // 设置处理失败标志
+                isProcessing = false;
+                isProcessingCancelled = true;
+                updateButtonStates();
+            });
+    }
+
+    // 状态清理函数
+    function clearProcessingStatus() {
+        processingStatus.style.display = 'none';
+        processingStatus.style.opacity = '1';
+        processingStatus.innerHTML = '';
+        window.__pendingAnimations?.forEach(clearTimeout);
+        window.__pendingAnimations = [];
+    }
+
+    // 点击终止处理按钮后
+    function cancelProcessing() {
+        if (!isProcessing) return;
+
+        clearInterval(processingInterval);
+        progressBar.style.display = 'none';
+        processingStatus.style.display = 'none';
+
+        // 重置结果网格
+        resultGrid.innerHTML = '';
+        currentImages.forEach((imgData, index) => {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'grid-item';
+            placeholder.innerHTML = `
+                            <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                <i class="fas fa-ban text-danger mb-2" style="font-size: 2rem;"></i>
+                                <div>处理已终止</div>
+                            </div>
+                        `;
+            resultGrid.appendChild(placeholder);
+        });
+
+        // 更新按钮状态，设置处理取消标志并清空处理结果
+        isProcessingCancelled = true;
+        processedImages = [];
+        isProcessing = false;
+        updateButtonStates();
+    }
+
+    // 点击下载图片按钮后
+    function downloadResults() {
+        if (processedImages.length === 0 || isProcessingCancelled) {
+            alert('没有可下载的图片');
+            return;
+        }
+
+        const img = processedImages[currentComparisonIndex];
+        downloadImage(img.processedUrl, getDownloadFilename(img.name, currentComparisonIndex));
+    }
+
+    // 生成下载文件名
+    function getDownloadFilename(originalName, index) {
+        const ext = originalName.split('.').pop().toLowerCase();
+        const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'));
+        let suffix = '';
+
+        switch(currentMode) {
+            case 'super': suffix = '_enhanced'; break;
+            case 'denoise': suffix = '_denoised'; break;
+            case 'color_enhance': suffix = '_color_enhanced'; break;
+        }
+
+        if (currentMode === 'super') {
+            suffix += `_${currentScale}x`;
+            if (currentImageType === 'manga') {
+                suffix += '_manga';
+            }
+        }
+
+        return `${nameWithoutExt}${suffix}_${index+1}.${ext}`;
+    }
+
+    // 实际下载函数
+    function downloadImage(url, filename) {
+        // 创建一个隐藏的<a>元素用于下载
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 如果是Blob URL，需要释放内存
+        if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    // 打开IndexedDB数据库
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+
+                // 删除旧的对象存储（如果存在）
+                if (db.objectStoreNames.contains(STORE_NAME)) {
+                    db.deleteObjectStore(STORE_NAME);
+                }
+
+                // 创建新的对象存储
+                const store = db.createObjectStore(STORE_NAME, {
+                    keyPath: 'id',
+                    autoIncrement: false
+                });
+
+                // 创建索引以便按日期查询
+                store.createIndex('date', 'date', { unique: false });
+            };
+
+            request.onsuccess = function(event) {
+                resolve(event.target.result);
+            };
+
+            request.onerror = function(event) {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    // 显示临时提示
+    function showTempAlert(message, type = 'info') {
+        const alert = document.getElementById('temp-alert');
+        const alertMessage = document.getElementById('alert-message');
+
+        alertMessage.textContent = message;
+        alert.className = `alert alert-${type} alert-temporary show alert-dismissible fade`;
+
+        // 自动隐藏
+        setTimeout(() => {
+            alert.classList.remove('show');
+        }, 2000);
+    }
+
+    // 检查存储使用情况
+    async function checkStorageUsage() {
+        try {
+            if (navigator.storage && navigator.storage.estimate) {
+                const estimation = await navigator.storage.estimate();
+                const usageMB = (estimation.usage / (1024 * 1024)).toFixed(2);
+                const quotaMB = (estimation.quota / (1024 * 1024)).toFixed(2);
+                const percentage = (estimation.usage / estimation.quota * 100).toFixed(1);
+
+                document.getElementById('storage-usage').style.width = `${percentage}%`;
+                document.getElementById('storage-usage').textContent = `${percentage}%`;
+                document.getElementById('storage-used').textContent = `${usageMB} MB 已使用`;
+                document.getElementById('storage-total').textContent = `${quotaMB} MB 总空间`;
+
+                // 根据使用率设置颜色
+                if (percentage > 90) {
+                    document.getElementById('storage-usage').classList.add('bg-danger');
+                    document.getElementById('storage-usage').classList.remove('bg-warning', 'bg-success');
+                } else if (percentage > 70) {
+                    document.getElementById('storage-usage').classList.add('bg-warning');
+                    document.getElementById('storage-usage').classList.remove('bg-danger', 'bg-success');
+                } else {
+                    document.getElementById('storage-usage').classList.add('bg-success');
+                    document.getElementById('storage-usage').classList.remove('bg-danger', 'bg-warning');
+                }
+            }
+        } catch (error) {
+            console.error('检查存储使用情况失败:', error);
+        }
+    }
+
+    // 压缩历史记录数据
+    function compressRecord(record) {
+        const dateObj = record.date instanceof Date ? record.date : new Date(record.date);
+        return {
+            id: record.id,
+            d: dateObj.getTime(),  // 时间戳替代Date对象
+            m: record.mode,           // 缩写字段名
+            t: record.imageType,      // 图片类型
+            s: record.scale,          // 缩放比例
+            i: record.images.map(img => ({
+                o: img.original.split('/').pop(),  // 只存文件名
+                p: img.processed.split('/').pop()
+            })),
+            c: record.count           // 图片数量
+        };
+    }
+
+    // 解压历史记录
+    function decompressRecord(compressed) {
+        return {
+            id: compressed.id,
+            date: new Date(compressed.d),
+            mode: compressed.m,
+            imageType: compressed.t,
+            scale: compressed.s,
+            images: compressed.i.map(img => ({
+                original: `${API_BASE_URL}/uploads/${img.o}`,
+                processed: `${API_BASE_URL}/processed/${img.p}`
+            })),
+            count: compressed.c
+        };
+    }
+
+    // 保存历史记录到IndexedDB
+    async function saveHistoryToStorage() {
+        try {
+            const db = await openDB(); // 打开IndexDB数据库连接
+            const tx = db.transaction(STORE_NAME, 'readwrite'); // 创建读写事件
+            const store = tx.objectStore(STORE_NAME); // 获取对象存储
+
+            // 清理旧记录（保留最后1000条）
+            // 获取所有记录
+            const allRecords = await new Promise((resolve, reject) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            if (allRecords.length > 1000) {
+                // 按日期排序，删除最旧的记录
+                const sortedRecords = allRecords.sort((a, b) => a.d - b.d);
+                const recordsToDelete = sortedRecords.slice(0, allRecords.length - 1000); // 计算需要删除的记录数
+
+                // 删除记录
+                for (const record of recordsToDelete) {
+                    store.delete(record.id);
+                }
+            }
+
+            // 保存前确保记录格式正确
+            const recordsToSave = historyRecords.map(record => {
+                // 如果已经是压缩格式就直接保存
+                if (record.d && record.m && record.i) return record;
+
+                // 否则转换旧格式到新格式
+                return compressRecord(record);
+            });
+
+            // 保存新记录（压缩后）
+            for (const record of recordsToSave) {
+                store.put(compressRecord(record));
+            }
+
+            // 等待事务完成
+            await tx.complete;
+
+            // 更新存储使用情况
+            await checkStorageUsage();
+
+        } catch (error) {
+            console.error('IndexedDB存储失败:', error);
+
+            // 降级使用localStorage
+            try {
+                // 只保存最近50条记录到localStorage
+                localStorage.setItem('ganHistory', JSON.stringify(historyRecords.slice(-50)));
+                showTempAlert('已使用本地存储备份数据', 'warning');
+            } catch (fallbackError) {
+                console.error('全存储方案失败', fallbackError);
+                showTempAlert('存储失败，历史记录可能丢失', 'danger');
+            }
+        }
+    }
+
+    // 从IndexedDB加载历史记录
+    async function loadHistoryFromStorage() {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');// 创建只读事务
+            const store = tx.objectStore(STORE_NAME);
+            const index = store.index('date'); // 获取日期索引
+
+            // 获取所有记录
+            const request = index.getAll();
+            request.onsuccess = () => {
+                if (request.result && request.result.length > 0) {
+                    // 解压记录并按日期降序排列
+                    historyRecords = request.result
+                        .map(decompressRecord)
+                        .sort((a, b) => b.date - a.date);
+                    renderHistory();
+                } else {
+                    // 尝试从localStorage降级加载
+                    try {
+                        const savedHistory = localStorage.getItem('ganHistory');
+                        if (savedHistory) {
+                            // 历史记录从localStorage中解析加载
+                            historyRecords = JSON.parse(savedHistory);
+                            renderHistory();
+                            showTempAlert('已从本地存储加载历史记录', 'info');
+                        }
+                    } catch (e) {
+                        console.error('降级加载失败:', e);
+                    }
+                }
+
+                // 更新存储使用情况
+                checkStorageUsage();
+            };
+
+            request.onerror = () => {
+                throw new Error('IndexedDB查询失败');
+            };
+
+        } catch (error) {
+            console.error('IndexedDB加载失败:', error);
+
+            // 降级使用localStorage
+            try {
+                const savedHistory = localStorage.getItem('ganHistory');
+                if (savedHistory) {
+                    const localStorageHistory = JSON.parse(savedHistory);
+
+                    // 迁移到IndexedDB
+                    await migrateLocalStorageToIndexedDB(localStorageHistory);
+
+                    // 删除LocalStorage数据
+                    localStorage.removeItem('ganHistory');
+                    showTempAlert('已从本地存储迁移历史记录到数据库', 'success');
+
+                    // 重新从IndexedDB加载
+                    await loadHistoryFromStorage();
+                    return;
+                    // historyRecords = JSON.parse(savedHistory);
+                    // renderHistory();
+                    // showTempAlert('已从本地存储加载历史记录', 'info');
+                }
+            } catch (e) {
+                console.error('降级加载失败:', e);
+            }
+        }
+    }
+
+    // 将LocalStorage数据迁移到IndexDB中
+    async function migrateLocalStorageToIndexedDB(localStorageHistory) {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            // 转换LocalStorage数据格式并存入IndexedDB
+            const recordsToAdd = localStorageHistory.map(record => {
+                // 如果已经是压缩格式就直接使用
+                if (record.d && record.m && record.i) {
+                    return record;
+                }
+
+                // 否则转换旧格式到新格式
+                return {
+                    id: record.id,
+                    d: record.date instanceof Date ? record.date.getTime() : new Date(record.date).getTime(),
+                    m: record.mode,
+                    t: record.imageType,
+                    s: record.scale,
+                    i: record.images.map(img => ({
+                        o: img.original.split('/').pop(),
+                        p: img.processed.split('/').pop()
+                    })),
+                    c: record.count
+                };
+            });
+
+            // 批量存储记录
+            await Promise.all(recordsToAdd.map(record => store.put(record)));
+            await tx.complete;
+
+        } catch (error) {
+            console.error('迁移失败:', error);
+            throw error;
+        }
+    }
+
+
+
+    // 将结果添加到历史记录
+    function addToHistory(processedResults) {
+        let apiMode;
+        if (currentMode === 'super') {
+            if (currentImageType === 'manga') {
+                apiMode = 'super_res_manga_4x';
+            } else {
+                apiMode = currentScale === 2 ? 'super_res_2x' : 'super_res_4x';
+            }
+        }else {
+            apiMode = currentMode;
+        }
+
+        // 确保processedImages中有数据
+        if (processedImages.length === 0) {
+            console.warn('没有处理后的图片，无法添加到历史记录');
+            return;
+        }
+
+        const historyRecord = {
+            id: Date.now(),
+            date: new Date(),
+            mode: apiMode,
+            imageType: currentImageType,
+            scale: currentScale,
+            images: processedResults.map(img => ({
+                original: processImageUrl(img.url), // 原始URL
+                processed: processImageUrl(img.processedUrl) // 处理后的URL
+            })),
+            count: currentImages.length
+        };
+
+        // 限制历史记录数量为1000条
+        if (historyRecords.length >= 1000) {
+            historyRecords.pop(); // 移除最旧的记录
+        }
+
+        // 添加新的记录到历史记录数组中
+        historyRecords.unshift(historyRecord);
+        renderHistory();
+
+        // 保存到IndexedDB
+        saveHistoryToStorage();
+    }
+
+    // 渲染历史记录
+    function renderHistory() {
+        if (historyRecords.length === 0) {
+            historyList.innerHTML = `
+                        <div class="empty-history">
+                            <i class="fas fa-clock"></i>
+                            <p class="text-muted">暂无处理历史</p>
+                        </div>
+                    `;
+            return;
+        }
+
+        let html = '';
+        historyRecords.forEach(record => {
+            const date = new Date(record.date);
+            const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+            // 显示模式和图片类型
+            let modeText = getModeName(record.mode);
+
+            // 对于超分辨率模式，添加类型和倍数徽章
+            let typeScaleHtml = '';
+            if (record.mode.includes('super')) {
+                const isManga = record.mode.includes('manga');
+                const scale = record.mode.includes('2x') ? 2 : 4;
+                typeScaleHtml = `<span class="type-scale-badge">${isManga ? '漫画' : '普通'} ${scale}倍</span>`;
+            }
+
+            html += `
+                    <div class="history-item" data-id="${record.id}">
+                        <div class="d-flex justify-content-between">
+
+                            <div>
+                                <span class="badge bg-success">已完成</span>
+                                <button class="btn btn-sm btn-outline-danger ms-2 delete-history-btn" data-id="${record.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>${modeText} ${typeScaleHtml}</span>
+                            <span>${dateStr}</span>
+                        </div>
+                        <div class="history-preview">
+                            ${record.images.slice(0, 3).map((img, idx) => `
+                                <div class="history-img-container">
+                                    <img src="${processImageUrl(img.original)}" alt="原始图片" onerror="this.style.display='none'">
+                                    <span class="badge bg-primary">${idx+1}</span>
+                                </div>
+                                <div class="history-img-container">
+                                    <img src="${processImageUrl(img.processed)}" alt="处理结果" onerror="this.style.display='none'">
+                                    <span class="badge bg-success">${idx+1}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    `;
+        });
+        historyList.innerHTML = html;
+
+        // 添加点击事件
+        document.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // 防止点击删除按钮时触发整个记录点击
+                if (e.target.closest('.delete-history-btn')) return;
+
+                const recordId = item.dataset.id;
+                const record = historyRecords.find(r => r.id == recordId);
+                if (record) {
+                    showHistoryDetail(record);
+                }
+            });
+        });
+
+        // 为删除按钮添加事件
+        document.querySelectorAll('.delete-history-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const recordId = btn.dataset.id;
+                deleteHistoryRecord(recordId);
+            });
+        });
+    }
+
+    // 清理指定天数（7/30）前的记录
+    async function clearOldRecords(days) {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const index = store.index('date');
+
+            const thresholdDate = new Date();
+            thresholdDate.setDate(thresholdDate.getDate() - days);
+            const thresholdTime = thresholdDate.getTime();
+
+            // 获取所有早于阈值的记录
+            const range = IDBKeyRange.upperBound(thresholdTime);
+            const request = index.openCursor(range);
+
+            request.onsuccess = function(event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    cursor.delete();
+                    cursor.continue();
+                }
+            };
+
+            await tx.complete;
+
+            // 重新加载历史记录
+            await loadHistoryFromStorage();
+            showTempAlert(`已清理${days}天前的历史记录`, 'success');
+
+        } catch (error) {
+            console.error('清理记录失败:', error);
+            showTempAlert('清理记录失败', 'danger');
+        }
+    }
+
+    // 删除指定历史记录
+    function deleteHistoryRecord(recordId) {
+        if (confirm('确定要删除这条历史记录吗？')) {
+            historyRecords = historyRecords.filter(record => record.id != recordId);
+            renderHistory();
+
+            // 更新localStorage
+            saveHistoryToStorage();
+        }
+    }
+
+    // 清空历史记录
+    function clearHistory() {
+        if (historyRecords.length === 0) return;
+        if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
+            clearAllHistory();
+        }
+    }
+
+    // 执行清空历史记录的命令
+    async function clearAllHistory() {
+        try {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            await store.clear();
+            await tx.complete;
+
+            // 清空LocalStorage的数据
+            localStorage.removeItem('ganHistory');
+
+            historyRecords = [];
+            renderHistory();
+            showTempAlert('已清空所有历史记录', 'success');
+
+        } catch (error) {
+            console.error('清空记录失败:', error);
+            showTempAlert('清空记录失败', 'danger');
+        }
+    }
+
+    // 加载历史记录详情页面
+    function showHistoryDetail(record) {
+        currentHistoryRecord = record;
+        const date = new Date(record.date);
+        const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+        // 显示模式
+        historyDetailMode.textContent = getModeName(record.mode);
+        historyDetailDate.textContent = dateStr;
+
+        // 在超分辨率模式下显示图片类型和倍数信息
+        historyTypeScale.innerHTML = '';
+        if (record.mode === 'super') {
+            historyTypeScale.innerHTML = `<span class="type-scale-badge">${record.imageType === 'normal' ? '普通' : '漫画'} ${record.scale}倍</span>`;
+        }
+
+        let gridHtml = '';
+
+        // 显示每张图片的原始和增强结果
+        record.images.forEach((img, index) => {
+            // 使用processImageUrl处理图片URL
+            const originalUrl = processImageUrl(img.original);
+            const processedUrl = processImageUrl(img.processed);
+
+            gridHtml += `
+                    <div class="history-detail-item">
+                        <h6>图片 ${index + 1} - 原始</h6>
+                        <div class="history-detail-preview" data-type="original" data-src="${originalUrl}">
+                            <img src="${originalUrl}" alt="原始图片">
+                        </div>
+                    </div>
+                    <div class="history-detail-item">
+                        <h6>图片 ${index + 1} - 增强结果</h6>
+                        <div class="history-detail-preview" data-type="processed" data-src="${processedUrl}">
+                            <img src="${processedUrl}" alt="处理结果">
+                        </div>
+                    </div>
+                    `;
+        });
+
+        historyDetailGrid.innerHTML = gridHtml;
+
+        // 添加图片点击事件
+        // document.querySelectorAll('.history-detail-preview').forEach(preview => {
+        //     preview.addEventListener('click', () => {
+        //         const src = preview.dataset.src;
+        //         openZoomView(src);
+        //     });
+        // });
+        // 添加图片点击事件 - 使用事件委托
+        historyDetailGrid.addEventListener('click', function(e) {
+            const preview = e.target.closest('.history-detail-preview');
+            if (preview) {
+                const src = preview.dataset.src;
+                openZoomView(src);
+            }
+        });
+
+        historyDetailView.classList.add('active');
+    }
+
+    // 跳转到点击的记录的细节查看区域
+    function showHistoryDetailComparison() {
+        if (!currentHistoryRecord) return;
+
+        closeHistoryDetail();
+
+        // 设置主页面细节查看区域
+        if (currentHistoryRecord.images.length > 0) {
+            const firstImage = currentHistoryRecord.images[0];
+            beforeImage.style.backgroundImage = `url(${firstImage.original})`;
+            afterImage.style.backgroundImage = `url(${firstImage.processed})`;
+
+            // 更新缩略图列表
+            updateThumbnailsForHistory(currentHistoryRecord);
+
+            // 滚动到细节查看区域
+            document.querySelector('.comparison-slider').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }
+
+    // 更新缩略图列表
+    function updateThumbnailsForHistory(record) {
+        comparisonThumbnails.innerHTML = '';
+
+        record.images.forEach((img, index) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'comparison-thumb';
+            if (index === 0) thumb.classList.add('active');
+            thumb.innerHTML = `
+                            <img src="${img.original}" alt="图片 ${index+1}">
+                            <span class="badge bg-primary">${index+1}</span>
+                        `;
+            thumb.addEventListener('click', () => {
+                currentComparisonIndex = index;
+                updateComparisonSliderFromHistory(record, index);
+            });
+            comparisonThumbnails.appendChild(thumb);
+        });
+
+        // 初始化第一个图片
+        currentComparisonIndex = 0;
+        updateComparisonSliderFromHistory(record, 0);
+    }
+
+    // 更新缩略图
+    function updateComparisonSliderFromHistory(record, index) {
+        if (!record || index >= record.images.length) return;
+
+        const img = record.images[index];
+        beforeImage.style.backgroundImage = `url(${img.original})`;
+        afterImage.style.backgroundImage = `url(${img.processed})`;
+
+        // 更新缩略图激活状态
+        document.querySelectorAll('.comparison-thumb').forEach((thumb, idx) => {
+            if (idx === index) {
+                thumb.classList.add('active');
+            } else {
+                thumb.classList.remove('active');
+            }
+        });
+    }
+
+    // 关闭历史记录详情
+    function closeHistoryDetail() {
+        historyDetailView.classList.remove('active');
+    }
+
+    // 获取模式名称
+    function getModeName(mode) {
+        switch(mode) {
+            case 'super_res_2x': return '超分辨率2倍';
+            case 'super_res_4x': return '超分辨率4倍';
+            case 'super_res_manga_4x': return '漫画超分辨率4倍';
+            case 'denoise': return '去噪';
+            case 'color_enhance': return '色彩增强';
+            default: return mode;
+        }
+    }
+
+    // 更新细节查看区域图片
+    function updateComparisonSlider(index) {
+        // 保护：检查索引是否有效
+        if (processedImages.length === 0 || index < 0 || index >= processedImages.length) {
+            return;
+        }
+
+        const img = processedImages[index];
+
+        // 显示加载动画
+        imageLoading.style.display = 'block';
+
+        // 模拟图片加载延迟
+        setTimeout(() => {
+            // 显示处理后的图片
+            beforeImage.style.backgroundImage = `url(${img.url})`; // 原图
+            afterImage.style.backgroundImage = `url(${img.processedUrl})`; // 处理后的图片
+
+            // 隐藏加载动画
+            imageLoading.style.display = 'none';
+
+            // 更新缩略图激活状态
+            document.querySelectorAll('.comparison-thumb').forEach((thumb, idx) => {
+                if (idx === index) {
+                    thumb.classList.add('active');
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+
+            // 重置缩放和位置
+            resetComparisonZoom();
+        }, 300);
+    }
+
+    // 更新细节查看区域
+    function updateComparisonThumbnails() {
+        if (processedImages.length === 0) return;
+
+        comparisonThumbnails.innerHTML = '';
+
+        processedImages.forEach((img, index) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'comparison-thumb';
+            if (index === 0) thumb.classList.add('active');
+            thumb.innerHTML = `
+                            <img src="${img.processedUrl || img.url}" alt="图片 ${index+1}">
+                            <span class="badge bg-primary">${index+1}</span>
+                        `;
+            thumb.addEventListener('click', () => {
+                currentComparisonIndex = index;
+                updateComparisonSlider(index);
+            });
+            comparisonThumbnails.appendChild(thumb);
+        });
+
+        // 初始化第一个图片
+        currentComparisonIndex = 0;
+        updateComparisonSlider(0);
+    }
+
+    // 展示点击的图片
+    function openZoomView(imageSrc) {
+        // 确保传入的是纯URL，而不是CSS格式
+        if (imageUrl.startsWith('url(')) {
+            // 如果是CSS格式，提取URL
+            imageUrl = imageUrl.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+        }
+        zoomImage.src = imageUrl;
+        zoomImage.style.transform = `scale(${zoomLevel})`;
+        zoomInfo.textContent = `放大视图 | ${Math.round(zoomLevel * 100)}%`;
+        zoomView.classList.add('active');
+
+        // 添加加载事件处理程序，确保图片加载完成
+        zoomImage.onload = function() {
+            // 图片加载完成后，确保视图正确显示
+            console.log('图片加载完成:', imageUrl);
+        };
+
+        zoomImage.onerror = function() {
+            console.error('图片加载失败:', imageUrl);
+            alert('图片加载失败，请检查网络连接或图片URL');
+        };
+    }
+
+    // 关闭展示图片
+    function closeZoomView() {
+        zoomView.classList.remove('active');
+        resetZoom();
+    }
+
+    // 调整缩放比例
+    function adjustZoom(delta) {
+        zoomLevel += delta;
+        zoomLevel = Math.max(0.5, Math.min(zoomLevel, 4)); // 限制在0.5到4倍之间
+        zoomImage.style.transform = `scale(${zoomLevel})`;
+        zoomInfo.textContent = `放大视图 | ${Math.round(zoomLevel * 100)}%`;
+    }
+
+    // 重置缩放
+    function resetZoom() {
+        zoomLevel = 1;
+        zoomImage.style.transform = 'scale(1)';
+        zoomInfo.textContent = `放大视图 | 100%`;
+    }
+
+    // 细节查看区域的缩放功能
+    function adjustComparisonZoom(delta) {
+        comparisonZoomLevel += delta;
+        comparisonZoomLevel = Math.max(0.5, Math.min(comparisonZoomLevel, 4.0)); // 限制在0.5到4.0倍之间
+
+        // 更新显示
+        updateComparisonZoomDisplay();
+
+        // 应用缩放效果
+        beforeImage.style.transform = `scale(${comparisonZoomLevel})`;
+        beforeImage.style.transformOrigin = 'center center';
+        afterImage.style.transform = `scale(${comparisonZoomLevel})`;
+        afterImage.style.transformOrigin = 'center center';
+
+        // 重置位置
+        translateX = 0;
+        translateY = 0;
+        beforeImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+        afterImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+    }
+
+    // 重置缩放和位置
+    function resetComparisonZoom() {
+        comparisonZoomLevel = 1.0;
+        updateComparisonZoomDisplay();
+
+        // 重置位置
+        translateX = 0;
+        translateY = 0;
+        beforeImage.style.transform = 'scale(1) translate(0px, 0px)';
+        afterImage.style.transform = 'scale(1) translate(0px, 0px)';
+    }
+
+    // 更新缩放级别显示
+    function updateComparisonZoomDisplay() {
+        comparisonZoomLevelDisplay.textContent = comparisonZoomLevel.toFixed(1) + 'x';
+    }
+
+    // 显示缩放输入框
+    function showZoomInput() {
+        customZoomInput.value = comparisonZoomLevel.toFixed(1);
+        zoomInputContainer.style.display = 'flex';
+        customZoomInput.focus(); // 自动聚焦输入框
+
+        // 添加动画效果
+        zoomInputContainer.style.opacity = '0';
+        zoomInputContainer.style.transform = 'translateY(-10px)';
+
+        setTimeout(() => {
+            zoomInputContainer.style.opacity = '1';
+            zoomInputContainer.style.transform = 'translateY(0)';
+        }, 10);
+    }
+
+    // 应用输入缩放比例
+    function applyCustomZoom() {
+        const newZoom = parseFloat(customZoomInput.value);
+        if (!isNaN(newZoom) && newZoom >= 0.5 && newZoom <= 4.0) {
+            comparisonZoomLevel = newZoom;
+            updateComparisonZoomDisplay();
+
+            beforeImage.style.transform = `scale(${comparisonZoomLevel})`;
+            afterImage.style.transform = `scale(${comparisonZoomLevel})`;
+
+            // 重置位置
+            translateX = 0;
+            translateY = 0;
+            beforeImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+            afterImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+        } else {
+            alert('请输入0.5到4.0之间的有效数字');
+        }
+        zoomInputContainer.style.display = 'none';
+    }
+
+    // 处理鼠标滚轮缩放事件
+    function handleMouseWheel(e) {
+        // 检查是否按下了Ctrl键
+        if (e.ctrlKey) {
+            e.preventDefault();
+
+            // 根据滚轮方向调整缩放级别
+            if (e.deltaY < 0) {
+                adjustComparisonZoom(0.1);
+            } else {
+                adjustComparisonZoom(-0.1);
+            }
+        }
+    }
+
+    // 启动鼠标拖拽事件
+    function startDrag(e) {
+        // 只有在拖拽模式启用时才允许拖动
+        if (dragModeEnabled && comparisonZoomLevel > 1.0) {
+            isDragging = true;
+            dragStartX = e.clientX - translateX;
+            dragStartY = e.clientY - translateY;
+            beforeImage.classList.add('dragging');
+            afterImage.classList.add('dragging');
+        }
+    }
+
+    // 拖拽处理
+    function handleDrag(e) {
+        if (isDragging) {
+            e.preventDefault();
+
+            translateX = e.clientX - dragStartX;
+            translateY = e.clientY - dragStartY;
+
+            // 限制拖动范围
+            const maxOffset = 100 * (comparisonZoomLevel - 1);
+            translateX = Math.max(-maxOffset, Math.min(maxOffset, translateX));
+            translateY = Math.max(-maxOffset, Math.min(maxOffset, translateY));
+
+            beforeImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+            afterImage.style.transform = `scale(${comparisonZoomLevel}) translate(${translateX}px, ${translateY}px)`;
+        }
+    }
+
+    // 关闭拖拽
+    function endDrag() {
+        isDragging = false;
+        beforeImage.classList.remove('dragging');
+        afterImage.classList.remove('dragging');
+    }
+
+    // 键盘事件处理
+    function handleKeyDown(e) {
+        // Ctrl + 加号/减号 缩放
+        if (e.ctrlKey) {
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                adjustComparisonZoom(0.1);
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                adjustComparisonZoom(-0.1);
+            } else if (e.key === '0') {
+                e.preventDefault();
+                resetComparisonZoom();
+            }
+        }
+
+        // ESC键关闭弹窗
+        if (e.key === 'Escape') {
+            if (zoomView.classList.contains('active')) {
+                closeZoomView();
+            }
+            if (historyDetailView.classList.contains('active')) {
+                closeHistoryDetail();
+            }
+            if (zoomInputContainer.style.display === 'flex') {
+                zoomInputContainer.style.display = 'none';
+            }
+        }
+    }
+
+    // 初始化
+    resetComparisonZoom(); // 初始化缩放
+    updateButtonStates(); // 更新按钮状态
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化存储使用情况检查
+        checkStorageUsage();
+
+        // 定期检查存储使用情况（每5分钟）
+        setInterval(checkStorageUsage, 5 * 60 * 1000);
+
+        // 加载历史记录
+        loadHistoryFromStorage();
+    });
+
+    // 页面加载时显示图片类型、倍数选择和提示信息（因为超分辨率是默认模式）
+    imageTypeContainer.style.display = 'block';
+    scaleSelectionContainer.style.display = 'block';
+    srganInfo.style.display = 'block';
+    updateScaleButtons();
+
+    // 添加点击事件，点击页面其他地方时关闭输入框
+    document.addEventListener('click', function(e) {
+        // 如果点击的不是输入框区域
+        if (!zoomInputContainer.contains(e.target) &&
+            e.target !== comparisonZoomLevelDisplay) {
+            zoomInputContainer.style.display = 'none';
+        }
+    });
+
+    // 防止输入框点击事件冒泡
+    customZoomInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    applyZoomBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // 页面加载时从IndexDB中加载历史记录
+    loadHistoryFromStorage();
+
+</script>
+</body>
+</html>

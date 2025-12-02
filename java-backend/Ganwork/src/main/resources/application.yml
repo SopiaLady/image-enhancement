@@ -1,0 +1,36 @@
+# application.yml
+app:
+  cloud:
+    upload-dir: ./uploads  # 文件存储目录
+    cors:
+      allowed-origins: "http://localhost:8080"
+
+  # API服务配置
+  api:
+    image-processing:
+      url: https://api.image-processor.com/v1/transform
+      key: your_api_key_here
+    timeout: 30000  # 30秒超时
+
+# 模型API端点配置
+cloud:
+  models:
+    #modelMap:
+      DENOISE:
+        api-endpoint: http://localhost:8000/api/denoise
+        #api-key: denoise_key_123
+      COLOR_ENHANCEMENT:
+        api-endpoint: http://localhost:8000/api/color_enhancement
+        #api-key: 222
+      COMBO_RES_SHARPEN_2X:
+        api-endpoint: http://localhost:8000/api/super_res_2x
+        #api-key: sr_key_456
+      COMBO_RES_SHARPEN_4X:
+        api-endpoint: http://localhost:8000/api/super_res_4x
+        #api-key: sr_key_456
+      COMBO_RES_MANGA_SHARPEN:
+        api-endpoint: http://localhost:8000/api/manga_sharpen
+        #api-key: sr_key_456
+      IMAGE_SHARPENING:
+        api-endpoint: http://localhost:8000/api/image_sharpening
+        #api-key: sr_key_456
