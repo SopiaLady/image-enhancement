@@ -1,3 +1,4 @@
+# app.py
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
@@ -11,15 +12,69 @@ from dotenv import load_dotenv
 import uvicorn
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
+
 # 加载环境变量
 load_dotenv()
 
+# 初始化模型加载器
+model_loader = ModelLoader(model_dir="models")
+
+# 配置环境变量或使用默认值
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", "download")
+MODEL_DIR = os.getenv("MODEL_DIR", "models")
+
+# 设置模型加载器的模型目录
+model_loader.model_dir = Path(MODEL_DIR)
+
+
+# 使用生命周期管理器替代 on_event
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时加载模型
+    print("开始加载模型...")
+
+    # 确保模型目录存在
+    model_dir = Path(MODEL_DIR)
+    model_dir.mkdir(exist_ok=True)
+
+    # 只加载5个模型 - 直接从 MODEL_CONFIGS 获取
+    models_to_load = []
+    for model_name, config in MODEL_CONFIGS.items():
+        if hasattr(config, 'model_file'):
+            models_to_load.append(config.model_file)
+
+    print(f"准备加载以下模型: {models_to_load}")
+
+    loaded_count = 0
+    for model_file in models_to_load:
+        try:
+            model_loader.load_model(model_file)
+            loaded_count += 1
+            print(f"模型 {model_file} 加载成功")
+        except Exception as e:
+            print(f"模型 {model_file} 加载失败: {str(e)}")
+
+    print(f"模型加载完成! 成功加载 {loaded_count}/{len(models_to_load)} 个模型")
+
+    # 打印已加载的模型列表
+    loaded_models = model_loader.get_loaded_models()
+    print("已加载模型:", loaded_models)
+
+    yield  # 应用运行
+
+    # 关闭时清理（如果需要）
+    print("关闭应用...")
+
+
 app = FastAPI(
     title="图像处理模型API服务",
-    description="提供六个图像处理模型的API接口",
+    description="提供五个图像处理模型的API接口",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan  # 使用生命周期管理器
 )
 
 # 配置CORS
@@ -31,76 +86,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 初始化模型加载器
-model_loader = ModelLoader(model_dir="models")
-
-# 模型映射
-MODEL_MAP = {
-    "denoise": "denoise.onnx",
-    "color_enhance": "color_enhance.onnx",  # 确保与Java端的modelId匹配
-    "super_res_2x": "super_res_2x.onnx",
-    "super_res_4x": "super_res_4x.onnx",
-    "super_res_manga_4x": "super_res_manga_4x.onnx",
-}
-
-#配置环境变量或使用默认值
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
-DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", "download")
-MODEL_DIR = os.getenv("MODEL_DIR", "models")
-
-# 设置模型加载器的模型目录
-model_loader.model_dir = Path(MODEL_DIR)
-
-# 预加载所有模型
-@app.on_event("startup")
-async def load_models():
-    print("开始加载模型...")
-
-    # 确保模型目录存在
-    model_dir = Path(MODEL_DIR)
-    model_dir.mkdir(exist_ok=True)
-
-    # 加载所有模型
-    loaded_count = 0
-    for model_name, model_file in MODEL_MAP.items():
-        try:
-            model_loader.load_model(model_file)
-            loaded_count += 1
-            print(f"模型 {model_file} 加载成功")
-        except Exception as e:
-            print(f"模型 {model_file} 加载失败: {str(e)}")
-
-    print(f"模型加载完成! 成功加载 {loaded_count}/{len(MODEL_MAP)} 个模型")
-
-    # 打印已加载的模型列表
-    loaded_models = model_loader.get_loaded_models()
-    print("已加载模型:", loaded_models)
-
 
 # 健康检查
 @app.get("/health")
 def health_check():
-    loaded_models= list(model_loader.models.keys())
-    model_status= {}
+    loaded_models = list(model_loader.models.keys())
+    model_status = {}
     for model_file in loaded_models:
-        session= model_loader.models[model_file]
-        model_status
-        [model_file] = {
+        session = model_loader.models[model_file]
+        model_status[model_file] = {
             "providers": session.get_providers(),
             "input_info": [{"name": inp.name, "shape": inp.shape} for inp in session.get_inputs()],
             "output_info": [{"name": out.name, "shape": out.shape} for out in session.get_outputs()]
         }
 
     return {
-    "status": "healthy",
-    "models_loaded": loaded_models,
-    "model_details":
-        model_status
+        "status": "healthy",
+        "models_loaded": loaded_models,
+        "model_details": model_status
     }
 
 
 # 通用模型处理函数
-
 @app.post("/process")
 async def process_image(
         file: UploadFile = File(...),
@@ -162,6 +169,7 @@ async def process_image(
         traceback.print_exc()
         return {"status": "error", "error": str(e)}
 
+
 @app.get("/processed/{filename}")
 async def download_file(filename: str):
     file_path = Path(DOWNLOAD_DIR) / filename
@@ -176,25 +184,27 @@ async def download_file(filename: str):
         filename=f"processed_{filename}"
     )
 
+
 # 模型信息端点
 @app.get("/models")
 async def get_models_info():
     """获取所有模型的信息"""
     models_info = {}
     for model_name, config in MODEL_CONFIGS.items():
-        models_info
-        [model_name] = {
+        models_info[model_name] = {
             "model_file": config.model_file,
             "preprocess": config.preprocess.dict(),
             "postprocess": config.postprocess.dict(),
-            "special_processing": config.
-        special_processing
+            "special_processing": config.special_processing
         }
     return models_info
 
+
 # 提供处理结果的静态文件访问
 app.mount("/processed", StaticFiles(directory=DOWNLOAD_DIR), name="processed")
-# 保留原有的特定端点，但确保它们也使用正确的参数名
+
+
+# 保留原有的特定端点
 @app.post("/api/denoise")
 async def denoise_model(file: UploadFile = File(...)):
     return await process_image(file, "denoise")

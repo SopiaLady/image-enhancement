@@ -274,12 +274,12 @@ def process_image_with_model(config: ModelConfig, image_bytes: bytes) -> Tuple[
         tuple: (处理后的图像数组, 原始尺寸, 填充信息)
     """
 
-    # 检查是否是图像清晰化模型，如果是则直接返回原始图像
-    if config.name == "image_sharpening":
-        # 预处理图像但不进行模型处理
-        input_data, original_size, padding = preprocess_image(image_bytes, config)
-        # 直接返回预处理后的数据作为"输出"
-        return input_data, original_size,padding
+    # # 检查是否是图像清晰化模型，如果是则直接返回原始图像
+    # if config.name == "image_sharpening":
+    #     # 预处理图像但不进行模型处理
+    #     input_data, original_size, padding = preprocess_image(image_bytes, config)
+    #     # 直接返回预处理后的数据作为"输出"
+    #     return input_data, original_size,padding
 
     # 从ModelLoader获取模型会话
     from utils.model_loader import model_loader
@@ -443,12 +443,12 @@ def save_processed_image(
     保存处理后的图像，对于简单预处理模型直接调整尺寸，对于复杂预处理模型移除填充
     """
 
-    # 检查是否是图像清晰化模型
-    if config.name == "image_sharpening":
-        # 对于图像清晰化模型，直接保存原始图像
-        with open(output_path, "wb") as f:
-            f.write(image_bytes)  # 这里需要访问原始图像字节
-        return remove_timestamp_prefix(os.path.basename(output_path))
+    # # 检查是否是图像清晰化模型
+    # if config.name == "image_sharpening":
+    #     # 对于图像清晰化模型，直接保存原始图像
+    #     with open(output_path, "wb") as f:
+    #         f.write(image_bytes)  # 这里需要访问原始图像字节
+    #     return remove_timestamp_prefix(os.path.basename(output_path))
 
 
     # 检查是否是超分辨率模型

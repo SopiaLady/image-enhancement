@@ -13,14 +13,20 @@ class ModelLoader:
             cls._instance = super(ModelLoader, cls).__new__(cls)
             cls._instance.models = {}
             cls._instance.model_dir = Path(model_dir)
+            # 确保模型目录存在
+            cls._instance.model_dir.mkdir(exist_ok=True)
         return cls._instance
 
     def __init__(self, model_dir="models"):
-        # 确保模型目录存在
-        self.model_dir.mkdir(exist_ok=True)
+        # 这里不需要再次初始化，已经在 __new__ 中处理了
+        pass
 
     def load_model(self, model_file: str) -> ort.InferenceSession:
         """加载ONNX模型"""
+        print(f"DEBUG: 尝试加载模型: {model_file}, 调用栈:")
+        import traceback
+        traceback.print_stack()
+
         if model_file in self.models:
             return self.models[model_file]
 
@@ -75,6 +81,22 @@ class ModelLoader:
             print(f"模型已卸载: {model_file}")
             return True
         return False
+
+    def load_all_models(self, model_files: list = None):
+        """加载所有指定的模型文件，如果不指定则加载目录下所有 .onnx 文件"""
+        if model_files is None:
+            # 加载目录下所有 .onnx 文件
+            model_files = [f.name for f in self.model_dir.glob("*.onnx")]
+
+        loaded_count = 0
+        for model_file in model_files:
+            try:
+                self.load_model(model_file)
+                loaded_count += 1
+            except Exception as e:
+                print(f"加载模型 {model_file} 失败: {e}")
+
+        return loaded_count
 
 
 # 全局模型加载器实例
