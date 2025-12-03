@@ -31,6 +31,3 @@ cloud:
       COMBO_RES_MANGA_SHARPEN:
         api-endpoint: http://localhost:8000/api/manga_sharpen
         #api-key: sr_key_456
-      IMAGE_SHARPENING:
-        api-endpoint: http://localhost:8000/api/image_sharpening
-        #api-key: sr_key_456

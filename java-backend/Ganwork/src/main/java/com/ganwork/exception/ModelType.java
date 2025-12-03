@@ -9,11 +9,10 @@ public enum ModelType {
     // 基础模型（独立功能）
     DENOISE("图像去噪", "denoise", "denoise"),
     COLOR_ENHANCEMENT("色彩增强", "color_enhance", "color_enhance"),
-    IMAGE_SHARPENING("图像清晰化", "image_sharpening", "image_sharpening"),
-    // 组合模型（包含超分辨率+清晰化）
-    COMBO_RES_SHARPEN_2X("超分2倍+清晰化", "sr_sharpen_2x", "combo_res_sharpen_2x"),
-    COMBO_RES_SHARPEN_4X("超分4倍+清晰化", "sr_sharpen_4x", "combo_res_sharpen_4x"),
-    COMBO_RES_MANGA_SHARPEN("漫画超分+清晰化", "sr_manga_sharpen", "combo_res_manga_sharpen");
+    // 独立的超分辨率模型（不再是组合模型）
+    SUPER_RES_2X("超分辨率2倍", "super_res_2x", "super_res_2x"),
+    SUPER_RES_4X("超分辨率4倍", "super_res_4x", "super_res_4x"),
+    SUPER_RES_MANGA_4X("漫画超分辨率", "super_res_manga_4x", "super_res_manga_4x");
 
     private final String displayName;
     private final String commandPrefix;
@@ -25,24 +24,16 @@ public enum ModelType {
         this.requestParam = requestParam;
     }
 
-    // 获取组合模型的内部处理流程
+    // 获取模型的内部处理流程 - 简化为单一模型处理
     public List<InternalModel> getProcessingPipeline() {
         switch (this) {
-            case COMBO_RES_SHARPEN_2X:
-                return Arrays.asList(
-                        InternalModel.SUPER_RES_2X,
-                        InternalModel.IMAGE_SHARPENING
-                );
-            case COMBO_RES_SHARPEN_4X:
-                return Arrays.asList(
-                        InternalModel.SUPER_RES_4X,
-                        InternalModel.IMAGE_SHARPENING
-                );
-            case COMBO_RES_MANGA_SHARPEN:
-                return Arrays.asList(
-                        InternalModel.SUPER_RES_MANGA_4X,
-                        InternalModel.IMAGE_SHARPENING
-                );
+            // 超分辨率模型现在是单一模型处理
+            case SUPER_RES_2X:
+                return Collections.singletonList(InternalModel.SUPER_RES_2X);
+            case SUPER_RES_4X:
+                return Collections.singletonList(InternalModel.SUPER_RES_4X);
+            case SUPER_RES_MANGA_4X:
+                return Collections.singletonList(InternalModel.SUPER_RES_MANGA_4X);
             default:
                 return Collections.singletonList(
                         InternalModel.fromModelType(this)
@@ -50,14 +41,13 @@ public enum ModelType {
         }
     }
 
-    // 内部模型定义 - 改为公共
+    // 内部模型定义 -
     public enum InternalModel {
         DENOISE("denoise"),   //降噪
         COLOR_ENHANCE("color_enhance"),   //色彩增强
         SUPER_RES_2X("super_res_2x"),   //普通图片2倍率
         SUPER_RES_4X("super_res_4x"),  //普通图片4倍率
-        SUPER_RES_MANGA_4X("super_res_manga_4x"),   //漫画图片4倍率
-        IMAGE_SHARPENING("image_sharpening");   //图像变清晰
+        SUPER_RES_MANGA_4X("super_res_manga_4x");   //漫画图片4倍率
 
         private final String modelId;
 
@@ -68,7 +58,6 @@ public enum ModelType {
         public String getModelId() {
             return modelId;
         }
-
 
         // 修复 fromString 方法
         public static InternalModel fromString(String text) {
@@ -84,18 +73,20 @@ public enum ModelType {
             switch (type) {
                 case DENOISE: return DENOISE;
                 case COLOR_ENHANCEMENT: return COLOR_ENHANCE;
+                case SUPER_RES_2X: return SUPER_RES_2X;
+                case SUPER_RES_4X: return SUPER_RES_4X;
+                case SUPER_RES_MANGA_4X: return SUPER_RES_MANGA_4X;
                 default: throw new IllegalArgumentException("无法转换的模型类型");
             }
         }
     }
 
-    // 添加获取内部模型显示名称的方法
+    // 添加获取内部模型显示名称的方法 - 移除 IMAGE_SHARPENING 相关
     public static String getInternalModelDisplayName(InternalModel model) {
         switch (model) {
             case SUPER_RES_2X: return "超分辨率(2倍)";
             case SUPER_RES_4X: return "超分辨率(4倍)";
             case SUPER_RES_MANGA_4X: return "漫画超分辨率(4倍)";
-            case IMAGE_SHARPENING: return "图像清晰化";
             case DENOISE: return "图像去噪";
             case COLOR_ENHANCE: return "色彩增强";
             default: return model.getModelId();
