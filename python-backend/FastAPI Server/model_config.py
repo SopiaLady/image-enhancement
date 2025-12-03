@@ -99,23 +99,7 @@ MODEL_CONFIGS = {
             "is_manga": True
         }
     ),
-    "image_sharpening": ModelConfig(
-        name="image_sharpening",
-        model_file="image_sharpening.onnx",
-        preprocess=ModelPreprocessConfig(
-            input_space="BGR",
-            normalization="0-1",
-            resize_method="bilinear"
-        ),
-        postprocess=ModelPostprocessConfig(
-            output_space="BGR",
-            denormalization="0-1",
-            clip_range=(0, 255)
-        ),
-        special_processing={
-        "is_sharpening": True
-        }
-    ),
+
 }
 
 # 模型映射（保持与Java后端兼容）

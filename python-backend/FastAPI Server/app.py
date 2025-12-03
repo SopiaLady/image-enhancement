@@ -41,7 +41,6 @@ MODEL_MAP = {
     "super_res_2x": "super_res_2x.onnx",
     "super_res_4x": "super_res_4x.onnx",
     "super_res_manga_4x": "super_res_manga_4x.onnx",
-    "image_sharpening": "image_sharpening.onnx"
 }
 
 #配置环境变量或使用默认值
@@ -219,11 +218,6 @@ async def super_res_4x_model(file: UploadFile = File(...)):
 @app.post("/api/super_res_manga_4x")
 async def manga_sharpen_model(file: UploadFile = File(...)):
     return await process_image(file, "super_res_manga_4x")
-
-
-@app.post("/api/image_sharpening")
-async def image_sharpening_model(file: UploadFile = File(...)):
-    return await process_image(file, "image_sharpening")
 
 
 if __name__ == "__main__":

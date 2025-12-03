@@ -54,10 +54,6 @@ def load_config() -> AppConfig:
                     "COMBO_RES_MANGA_SHARPEN": ModelEndpointConfig(
                         api_endpoint="http://localhost:5000/process/super_res_manga_4x",
                         #api_key="sr_key_456"
-                    ),
-                    "IMAGE_SHARPENING": ModelEndpointConfig(
-                        api_endpoint="http://localhost:5000/process/image_sharpening",
-                        #api_key="sr_key_456"
                     )
                 }
             )
