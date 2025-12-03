@@ -213,69 +213,55 @@ FastAPI Server/
 
 \### 环境要求
 
-\- \*\*Java\*\*: JDK 11 或更高版本
+Java: JDK 17 或更高版本
 
-\- \*\*Python\*\*: Python 3.8 或更高版本
+Python: Python 3.8 或更高版本
 
-\- \*\*Maven\*\*: 3.6.x 或更高版本 (用于Java项目构建)
+Maven: 3.6.x 或更高版本 (用于Java项目构建)
 
-\- \*\*Git\*\*: 版本控制系统
+Git: 版本控制系统
 
 
+1. 克隆项目
 
-\### 1. 克隆项目
-
-```bash
+bash
 
 git clone https://github.com/your-username/image-enhancement.git
 
 cd image-enhancement
 
-2\. 启动Python FastAPI服务
+2. 启动Python FastAPI服务
 
-\# 进入Python服务目录
+# 进入Python服务目录
 
 cd "FastAPI Server"
 
-
-
-\# 安装Python依赖
+# 安装Python依赖
 
 pip install -r requirements.txt
 
-
-
-\# 启动FastAPI服务（默认端口8000）
+# 启动FastAPI服务（默认端口8000）
 
 python app.py
 
-
-
-3\. 启动Java Spring Boot服务
+3. 启动Java Spring Boot服务
 
 直接运行主类
 
-\# 项目主类: com.ganwork.GanworkApplication
+项目主类: com.ganwork.GanworkApplication
 
 服务启动后，访问 http://localhost:8080 使用图像处理系统。
 
 
-
-4\. 使用系统
+4. 使用系统
 
 打开浏览器访问 http://localhost:8080
 
-
-
 点击"选择文件"按钮上传图像（支持JPG、PNG格式）
-
-
 
 选择处理功能：超分辨率、色彩增强、降噪
 
 点击"处理"按钮，等待AI模型处理
-
-
 
 查看处理结果，结果图像会自动保存到浏览器本地
 
@@ -285,41 +271,23 @@ python app.py
 
 欢迎贡献代码！请遵循以下步骤：
 
-
-
 Fork项目并克隆到本地
-
-
 
 创建功能分支: git checkout -b feature/your-feature
 
-
-
 提交更改: git commit -m 'Add some feature'
-
-
 
 推送到分支: git push origin feature/your-feature
 
-
-
 创建Pull Request
-
-
 
 代码规范
 
 Java代码: 遵循Google Java Style Guide
 
-
-
 Python代码: 遵循PEP 8规范
 
-
-
 提交信息: 使用约定式提交格式
-
-
 
 测试: 为新功能添加相应测试用例
 
